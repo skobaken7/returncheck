@@ -1,7 +1,7 @@
-// Package errcheck is the library used to implement the errcheck command-line tool.
+// Package returncheck is the library used to implement the returncheck command-line tool.
 //
 // Note: The API of this package has not been finalized and may change at any point.
-package errcheck
+package returncheck
 
 import (
 	"bufio"
@@ -109,6 +109,8 @@ type Checker struct {
 
 	// If true, checking of files with generated code is disabled
 	WithoutGeneratedCode bool
+
+	TargetType string
 
 	exclude map[string]bool
 }
@@ -233,6 +235,7 @@ func (c *Checker) CheckPackages(paths ...string) error {
 				asserts: c.Asserts,
 				lines:   make(map[string][]string),
 				exclude: c.exclude,
+				target:  c.TargetType,
 				errors:  []UncheckedError{},
 			}
 
@@ -263,7 +266,7 @@ func (c *Checker) CheckPackages(paths ...string) error {
 	return nil
 }
 
-// visitor implements the errcheck algorithm
+// visitor implements the returncheck algorithm
 type visitor struct {
 	pkg     *packages.Package
 	ignore  map[string]*regexp.Regexp
@@ -271,6 +274,7 @@ type visitor struct {
 	asserts bool
 	lines   map[string][]string
 	exclude map[string]bool
+	target  string
 
 	errors []UncheckedError
 }
@@ -468,10 +472,10 @@ func (v *visitor) errorsByArg(call *ast.CallExpr) []bool {
 	switch t := v.pkg.TypesInfo.Types[call].Type.(type) {
 	case *types.Named:
 		// Single return
-		return []bool{isErrorType(t)}
+		return []bool{v.isTargetType(t)}
 	case *types.Pointer:
 		// Single return via pointer
-		return []bool{isErrorType(t)}
+		return []bool{v.isTargetType(t)}
 	case *types.Tuple:
 		// Multiple returns
 		s := make([]bool, t.Len())
@@ -479,10 +483,10 @@ func (v *visitor) errorsByArg(call *ast.CallExpr) []bool {
 			switch et := t.At(i).Type().(type) {
 			case *types.Named:
 				// Single return
-				s[i] = isErrorType(et)
+				s[i] = v.isTargetType(et)
 			case *types.Pointer:
 				// Single return via pointer
-				s[i] = isErrorType(et)
+				s[i] = v.isTargetType(et)
 			default:
 				s[i] = false
 			}
@@ -634,6 +638,6 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	return v
 }
 
-func isErrorType(t types.Type) bool {
-	return types.Implements(t, errorType)
+func (v *visitor) isTargetType(t types.Type) bool {
+	return t.String() == v.target
 }

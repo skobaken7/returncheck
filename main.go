@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kisielk/errcheck/internal/errcheck"
+	"github.com/skobaken7/returncheck/internal/returncheck"
 )
 
 const (
@@ -82,7 +82,7 @@ func (f *tagsFlag) Set(s string) error {
 
 var dotStar = regexp.MustCompile(".*")
 
-func reportUncheckedErrors(e *errcheck.UncheckedErrors, verbose bool) {
+func reportUncheckedErrors(e *returncheck.UncheckedErrors, verbose bool) {
 	wd, err := os.Getwd()
 	if err != nil {
 		wd = ""
@@ -107,17 +107,17 @@ func reportUncheckedErrors(e *errcheck.UncheckedErrors, verbose bool) {
 func mainCmd(args []string) int {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	checker := errcheck.NewChecker()
+	checker := returncheck.NewChecker()
 	paths, err := parseFlags(checker, args)
 	if err != exitCodeOk {
 		return err
 	}
 
 	if err := checker.CheckPackages(paths...); err != nil {
-		if e, ok := err.(*errcheck.UncheckedErrors); ok {
+		if e, ok := err.(*returncheck.UncheckedErrors); ok {
 			reportUncheckedErrors(e, checker.Verbose)
 			return exitUncheckedError
-		} else if err == errcheck.ErrNoGoFiles {
+		} else if err == returncheck.ErrNoGoFiles {
 			fmt.Fprintln(os.Stderr, err)
 			return exitCodeOk
 		}
@@ -127,13 +127,14 @@ func mainCmd(args []string) int {
 	return exitCodeOk
 }
 
-func parseFlags(checker *errcheck.Checker, args []string) ([]string, int) {
+func parseFlags(checker *returncheck.Checker, args []string) ([]string, int) {
 	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	flags.BoolVar(&checker.Blank, "blank", false, "if true, check for errors assigned to blank identifier")
 	flags.BoolVar(&checker.Asserts, "asserts", false, "if true, check for ignored type assertion results")
 	flags.BoolVar(&checker.WithoutTests, "ignoretests", false, "if true, checking of _test.go files is disabled")
 	flags.BoolVar(&checker.WithoutGeneratedCode, "ignoregenerated", false, "if true, checking of files with generated code is disabled")
 	flags.BoolVar(&checker.Verbose, "verbose", false, "produce more verbose logging")
+	flags.StringVar(&checker.TargetType, "targettype", "", "Target type to check")
 
 	flags.BoolVar(&abspath, "abspath", false, "print absolute paths to files")
 

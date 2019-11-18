@@ -1,4 +1,4 @@
-package errcheck
+package returncheck
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-const testPackage = "github.com/kisielk/errcheck/testdata"
+const testPackage = "github.com/skobaken7/returncheck/testdata"
 
 var (
 	uncheckedMarkers map[marker]bool

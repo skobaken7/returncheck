@@ -1,4 +1,4 @@
-package errcheck
+package returncheck
 
 import (
 	"go/ast"
